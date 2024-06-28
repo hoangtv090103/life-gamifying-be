@@ -1,7 +1,7 @@
 package server
 
 import (
-	"life-gamifying/internal/handlers"
+	"life-gamifying/internal/routes"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -15,17 +15,8 @@ func (s *Server) RegisterRoutes() http.Handler {
 	api := r.Group("/api")
 
 	v1 := api.Group("/v1")
-	{
-		v1.GET("/habits", func(c *gin.Context) {
-			handlers.GetAllHabits(c, s.db)
-		})
-		v1.GET("/habits/:id", func(c *gin.Context) {
-			handlers.GetHabitByID(c, s.db)
-		})
-		v1.GET("/players/:id/habits", func(c *gin.Context) {
-			handlers.GetHabitsOfPlayer(c, s.db)
-		})
-	}
+
+	routes.HabitRoutes(v1, s.db)
 
 	return r
 }
