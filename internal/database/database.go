@@ -3,6 +3,7 @@ package database
 import (
 	"context"
 	"fmt"
+	"life-gamifying/internal/models"
 	"log"
 	"math"
 	"os"
@@ -12,34 +13,43 @@ import (
 
 	_ "github.com/joho/godotenv/autoload"
 	"github.com/redis/go-redis/v9"
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
 )
 
 type Service interface {
-	Health() map[string]string
+	RDB() *redis.Client
+	DB() *gorm.DB
+	RDHealth() map[string]string
+	PHealth() map[string]string
+	Close()
 }
 
 type service struct {
-	db *redis.Client
+	pgdb *gorm.DB
+	rdb  *redis.Client
 }
 
 var (
-	address  = os.Getenv("DB_ADDRESS")
-	port     = os.Getenv("DB_PORT")
-	password = os.Getenv("DB_PASSWORD")
-	database = os.Getenv("DB_DATABASE")
+	raddress  = os.Getenv("RDB_ADDRESS")
+	rport     = os.Getenv("RDB_PORT")
+	rpassword = os.Getenv("RDB_PASSWORD")
+	rdatabase = os.Getenv("RDB_DATABASE")
 )
 
 func New() Service {
-	num, err := strconv.Atoi(database)
+	var pgdb *gorm.DB
+	var rdb *redis.Client
+	num, err := strconv.Atoi(rdatabase)
 	if err != nil {
 		log.Fatalf(fmt.Sprintf("database incorrect %v", err))
 	}
 
-	fullAddress := fmt.Sprintf("%s:%s", address, port)
+	fullAddress := fmt.Sprintf("%s:%s", raddress, rport)
 
-	rdb := redis.NewClient(&redis.Options{
+	rdb = redis.NewClient(&redis.Options{
 		Addr:     fullAddress,
-		Password: password,
+		Password: rpassword,
 		DB:       num,
 		// Note: It's important to add this for a secure connection. Most cloud services that offer Redis should already have this configured in their services.
 		// For manual setup, please refer to the Redis documentation: https://redis.io/docs/latest/operate/oss_and_stack/management/security/encryption/
@@ -48,13 +58,47 @@ func New() Service {
 		// },
 	})
 
-	s := &service{db: rdb}
+	pgdb, err = gorm.Open(postgres.Open(os.Getenv("PDB_URL")), &gorm.Config{
+		PrepareStmt: true,
+	})
+
+	if err != nil {
+		log.Fatalf(fmt.Sprintf("database down: %v", err))
+	}
+
+	err = pgdb.AutoMigrate(
+		&models.User{},
+		&models.Admin{},
+		&models.Daily{},
+		&models.Habit{},
+		&models.Inventory{},
+		&models.InventoryItem{},
+		&models.Item{},
+		&models.Player{},
+		&models.Quest{},
+		&models.Rank{},
+		&models.Reward{},
+		&models.RewardItem{},
+	)
+	if err != nil {
+		log.Fatalf("failed to auto migrate: %v", err)
+	}
+	// Add the Redis and PostgreSQL clients to the service struct
+	s := &service{rdb: rdb, pgdb: pgdb}
 
 	return s
 }
 
+func (s *service) RDB() *redis.Client {
+	return s.rdb
+}
+
+func (s *service) DB() *gorm.DB {
+	return s.pgdb
+}
+
 // Health returns the health status and statistics of the Redis server.
-func (s *service) Health() map[string]string {
+func (s *service) RDHealth() map[string]string {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second) // Default is now 5s
 	defer cancel()
 
@@ -69,7 +113,7 @@ func (s *service) Health() map[string]string {
 // checkRedisHealth checks the health of the Redis server and adds the relevant statistics to the stats map.
 func (s *service) checkRedisHealth(ctx context.Context, stats map[string]string) map[string]string {
 	// Ping the Redis server to check its availability.
-	pong, err := s.db.Ping(ctx).Result()
+	pong, err := s.rdb.Ping(ctx).Result()
 	// Note: By extracting and simplifying like this, `log.Fatalf(fmt.Sprintf("db down: %v", err))`
 	// can be changed into a standard error instead of a fatal error.
 	if err != nil {
@@ -82,7 +126,7 @@ func (s *service) checkRedisHealth(ctx context.Context, stats map[string]string)
 	stats["redis_ping_response"] = pong
 
 	// Retrieve Redis server information.
-	info, err := s.db.Info(ctx).Result()
+	info, err := s.rdb.Info(ctx).Result()
 	if err != nil {
 		stats["redis_message"] = fmt.Sprintf("Failed to retrieve Redis info: %v", err)
 		return stats
@@ -92,7 +136,7 @@ func (s *service) checkRedisHealth(ctx context.Context, stats map[string]string)
 	redisInfo := parseRedisInfo(info)
 
 	// Get the pool stats of the Redis client.
-	poolStats := s.db.PoolStats()
+	poolStats := s.rdb.PoolStats()
 
 	// Prepare the stats map with Redis server information and pool statistics.
 	// Note: The "stats" map in the code uses string keys and values,
@@ -122,7 +166,7 @@ func (s *service) checkRedisHealth(ctx context.Context, stats map[string]string)
 	stats["redis_active_connections"] = strconv.FormatUint(activeConns, 10)
 
 	// Calculate the pool size percentage.
-	poolSize := s.db.Options().PoolSize
+	poolSize := s.rdb.Options().PoolSize
 	connectedClients, _ := strconv.Atoi(redisInfo["connected_clients"])
 	poolSizePercentage := float64(connectedClients) / float64(poolSize) * 100
 	stats["redis_pool_size_percentage"] = fmt.Sprintf("%.2f%%", poolSizePercentage)
@@ -133,8 +177,8 @@ func (s *service) checkRedisHealth(ctx context.Context, stats map[string]string)
 
 // evaluateRedisStats evaluates the Redis server statistics and updates the stats map with relevant messages.
 func (s *service) evaluateRedisStats(redisInfo, stats map[string]string) map[string]string {
-	poolSize := s.db.Options().PoolSize
-	poolStats := s.db.PoolStats()
+	poolSize := s.rdb.Options().PoolSize
+	poolStats := s.rdb.PoolStats()
 	connectedClients, _ := strconv.Atoi(redisInfo["connected_clients"])
 	highConnectionThreshold := int(float64(poolSize) * 0.8)
 
@@ -195,4 +239,72 @@ func parseRedisInfo(info string) map[string]string {
 		}
 	}
 	return result
+}
+
+func (s *service) Close() {
+	sqlDB, _ := s.pgdb.DB()
+	sqlDB.Close()
+	s.rdb.Close()
+}
+
+// POSTGRES HEALTH
+// Health checks the health of the database connection by pinging the database.
+// It returns a map with keys indicating various health statistics.
+func (s *service) PHealth() map[string]string {
+	var err error
+
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	defer cancel()
+
+	stats := make(map[string]string)
+
+	// Use the DB method to get a *sql.DB connection handle
+	sqlDB, err := s.pgdb.DB()
+	if err != nil {
+		stats["error"] = fmt.Sprintf("db down: %v", err)
+		log.Fatalf(fmt.Sprintf("db down: %v", err)) // Log the error and terminate the program
+		return stats
+	}
+
+	// Ping the database
+	err = sqlDB.PingContext(ctx)
+	if err != nil {
+		stats["status"] = "down"
+		stats["error"] = fmt.Sprintf("db down: %v", err)
+		log.Fatalf(fmt.Sprintf("db down: %v", err)) // Log the error and terminate the program
+		return stats
+	}
+
+	// Database is up, add more statistics
+	stats["status"] = "up"
+	stats["message"] = "It's healthy"
+
+	// Get database stats (like open connections, in use, idle, etc.)
+	dbStats := sqlDB.Stats()
+	stats["open_connections"] = strconv.Itoa(dbStats.OpenConnections)
+	stats["in_use"] = strconv.Itoa(dbStats.InUse)
+	stats["idle"] = strconv.Itoa(dbStats.Idle)
+	stats["wait_count"] = strconv.FormatInt(dbStats.WaitCount, 10)
+	stats["wait_duration"] = dbStats.WaitDuration.String()
+	stats["max_idle_closed"] = strconv.FormatInt(dbStats.MaxIdleClosed, 10)
+	stats["max_lifetime_closed"] = strconv.FormatInt(dbStats.MaxLifetimeClosed, 10)
+
+	// Evaluate stats to provide a health message
+	if dbStats.OpenConnections > 40 { // Assuming 50 is the max for this example
+		stats["message"] = "The database is experiencing heavy load."
+	}
+
+	if dbStats.WaitCount > 1000 {
+		stats["message"] = "The database has a high number of wait events, indicating potential bottlenecks."
+	}
+
+	if dbStats.MaxIdleClosed > int64(dbStats.OpenConnections)/2 {
+		stats["message"] = "Many idle connections are being closed, consider revising the connection pool settings."
+	}
+
+	if dbStats.MaxLifetimeClosed > int64(dbStats.OpenConnections)/2 {
+		stats["message"] = "Many connections are being closed due to max lifetime, consider increasing max lifetime or revising the connection usage pattern."
+	}
+
+	return stats
 }

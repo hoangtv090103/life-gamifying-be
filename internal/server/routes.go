@@ -1,6 +1,7 @@
 package server
 
 import (
+	"life-gamifying/internal/handlers"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -11,7 +12,18 @@ func (s *Server) RegisterRoutes() http.Handler {
 
 	r.GET("/", s.HelloWorldHandler)
 
-	r.GET("/health", s.healthHandler)
+	api := r.Group("/api")
+
+	v1 := api.Group("/v1")
+	{
+		v1.GET("/habits", func(c *gin.Context) {
+			handlers.GetAllHabits(c, s.db)
+		})
+		v1.GET("/habits/:id", func(c *gin.Context) {
+			handlers.GetHabitByID(c, s.db)
+		})
+	}
+
 
 	return r
 }
@@ -23,6 +35,10 @@ func (s *Server) HelloWorldHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, resp)
 }
 
-func (s *Server) healthHandler(c *gin.Context) {
-	c.JSON(http.StatusOK, s.db.Health())
+func (s *Server) redisHealthHandler(c *gin.Context) {
+	c.JSON(http.StatusOK, s.db.RDHealth())
+}
+
+func (s *Server) postgresHealthHandler(c *gin.Context) {
+	c.JSON(http.StatusOK, s.db.PHealth())
 }

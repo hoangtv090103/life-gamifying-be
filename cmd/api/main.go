@@ -1,7 +1,7 @@
 package main
 
 import (
-	"backend/internal/server"
+	"life-gamifying/internal/server"
 	"fmt"
 )
 

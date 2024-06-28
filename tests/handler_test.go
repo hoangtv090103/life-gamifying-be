@@ -1,7 +1,7 @@
 package tests
 
 import (
-	"backend/internal/server"
+	"life-gamifying/internal/server"
 	"github.com/gin-gonic/gin"
 	"net/http"
 	"net/http/httptest"
