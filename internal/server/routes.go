@@ -22,8 +22,10 @@ func (s *Server) RegisterRoutes() http.Handler {
 		v1.GET("/habits/:id", func(c *gin.Context) {
 			handlers.GetHabitByID(c, s.db)
 		})
+		v1.GET("/players/:id/habits", func(c *gin.Context) {
+			handlers.GetHabitsOfPlayer(c, s.db)
+		})
 	}
-
 
 	return r
 }
