@@ -7,7 +7,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func HabitRoutes(group *gin.RouterGroup, s database.Service) {
+func HabitRoutes(group *gin.RouterGroup, s database.Service) {	
 	habitRoute := group.Group("/habits")
 	{
 		habitRoute.GET("/", func(c *gin.Context) {

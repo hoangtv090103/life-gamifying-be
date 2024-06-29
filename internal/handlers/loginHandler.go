@@ -17,6 +17,11 @@ func Login(ctx *gin.Context, s database.Service) error {
 		return err
 	}
 
+	if loginUser.Username == "" || loginUser.Email == "" || loginUser.Password == "" {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Username or email, and password are required"})
+		return err
+	}
+
 	db := s.DB()
 	// Check if user exists by email or username
 	var user models.User

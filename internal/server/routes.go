@@ -5,32 +5,32 @@ import (
 	"life-gamifying/internal/routes"
 	"net/http"
 
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
-	// "github.com/gin-contrib/cors"
-
 )
 
 func (s *Server) RegisterRoutes() http.Handler {
 	r := gin.Default()
 
 	// CORS
-	// r.Use(cors.New(cors.Config{
-	//     AllowOrigins:     []string{"https://foo.com"},
-	//     AllowMethods:     []string{"PUT", "PATCH"},
-	//     AllowHeaders:     []string{"Origin"},
-	//     ExposeHeaders:    []string{"Content-Length"},
-	//     AllowCredentials: true,
-	//     AllowOriginFunc: func(origin string) bool {
-	//       return origin == "https://github.com"
-	//     },
-	//     MaxAge: 12 * time.Hour,
-	//   }))
-	
-	
+	config := cors.DefaultConfig()
+	config.AllowOrigins = []string{"http://localhost:5173"}
+	config.AllowMethods = []string{"GET", "POST", "PUT", "DELETE"}
+	config.AllowWildcard = true
+	config.AllowHeaders = []string{"Origin", "Authorization", "Content-Type", "Content-Length"}
+	config.AllowCredentials = true
+
+	r.Use(cors.New(config))
+
 	api := r.Group("/api")
+
+	api.GET("/health/redis", s.redisHealthHandler)
+	api.GET("/health/postgres", s.postgresHealthHandler)
+
 	v1 := api.Group("/v1")
 	routes.AuthRoutes(v1, s.db)
-	
+
+	v1.Use(cors.New(config))
 	v1.Use(middleware.AuthMiddleware())
 
 	r.GET("/", s.HelloWorldHandler)
