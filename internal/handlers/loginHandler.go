@@ -12,23 +12,37 @@ import (
 func Login(ctx *gin.Context, s database.Service) error {
 	var loginUser models.User
 	err := ctx.ShouldBindJSON(&loginUser)
+
+	
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return err
 	}
 
-	if loginUser.Username == "" || loginUser.Email == "" || loginUser.Password == "" {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Username or email, and password are required"})
+	// Check if username or email is empty	
+	var login string
+
+	if loginUser.Username != "" {
+		login = loginUser.Username
+	} else {
+		login = loginUser.Email
+	}
+
+	password := loginUser.Password
+
+	// Check if username or email is empty
+	if login == "" || password == ""{
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Username/Email and password is required"})
 		return err
 	}
 
 	db := s.DB()
 	// Check if user exists by email or username
 	var user models.User
-	db.Where("email = ? OR username = ?", user.Email, user.Username).First(&user)
+	db.Where("email = ? OR username = ?", login, login).First(&user)
 
 	// Check if password is correct
-	if !utils.CheckPasswordHash(loginUser.Password, user.Password) {
+	if !utils.CheckPasswordHash(password, user.Password) {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid password"})
 		return err
 	}

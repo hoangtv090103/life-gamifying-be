@@ -8,38 +8,32 @@ import (
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 )
-
 func (s *Server) RegisterRoutes() http.Handler {
-	r := gin.Default()
+    r := gin.Default()
 
-	// CORS
-	config := cors.DefaultConfig()
-	config.AllowOrigins = []string{"http://localhost:5173"}
-	config.AllowMethods = []string{"GET", "POST", "PUT", "DELETE"}
-	config.AllowWildcard = true
-	config.AllowHeaders = []string{"Origin", "Authorization", "Content-Type", "Content-Length"}
-	config.AllowCredentials = true
+    // Apply CORS middleware globally
+    r.Use(cors.New(cors.Config{
+        AllowOrigins:     []string{"http://localhost:5173"},
+        AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
+        AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization"},
+        AllowCredentials: true,
+    }))
 
-	r.Use(cors.New(config))
+    // Define routes
+    api := r.Group("/api")
+    api.GET("/health/redis", s.redisHealthHandler)
+    api.GET("/health/postgres", s.postgresHealthHandler)
+    routes.AuthRoutes(api, s.db)
 
-	api := r.Group("/api")
+    v1 := api.Group("/v1")
+    v1.Use(middleware.AuthMiddleware())
+    routes.HabitRoutes(v1, s.db)
+    routes.UserRoutes(v1, s.db)
+    routes.PlayerRoutes(v1, s.db)
 
-	api.GET("/health/redis", s.redisHealthHandler)
-	api.GET("/health/postgres", s.postgresHealthHandler)
+    r.GET("/", s.HelloWorldHandler)
 
-	v1 := api.Group("/v1")
-	routes.AuthRoutes(v1, s.db)
-
-	v1.Use(cors.New(config))
-	v1.Use(middleware.AuthMiddleware())
-
-	r.GET("/", s.HelloWorldHandler)
-
-	routes.HabitRoutes(v1, s.db)
-	routes.UserRoutes(v1, s.db)
-	routes.PlayerRoutes(v1, s.db)
-
-	return r
+    return r
 }
 
 func (s *Server) HelloWorldHandler(c *gin.Context) {
