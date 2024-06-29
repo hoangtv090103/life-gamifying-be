@@ -28,5 +28,9 @@ func PlayerRoutes(group *gin.RouterGroup, s database.Service) {
 			handlers.DeletePlayer(c, s)
 		})
 
+		playerRoute.GET("/:id/habits", func(c *gin.Context) {
+			handlers.GetHabitsByPlayerID(c, s)
+		})
+
 	}
 }

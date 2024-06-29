@@ -109,7 +109,7 @@ func DeletePlayer(ctx *gin.Context, s database.Service) {
 	ctx.JSON(http.StatusOK, gin.H{"message": "Player deleted"})
 }
 
-func GetHabitsOfPlayer(ctx *gin.Context, s database.Service) {
+func GetHabitsByPlayerID(ctx *gin.Context, s database.Service) {
 	var habits []models.Habit
 	client := s.RDB()
 	db := s.DB()
