@@ -28,7 +28,14 @@ func Login(ctx *gin.Context, s database.Service) error {
 		return err
 	}
 
-	ctx.JSON(http.StatusOK, user)
+	token, err := utils.CreateToken(user.Username)
+
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return err
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"token": token, "message": "Successfully logged in"})
 
 	return nil
 }
