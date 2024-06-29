@@ -16,7 +16,10 @@ func (s *Server) RegisterRoutes() http.Handler {
 
 	v1 := api.Group("/v1")
 
+	routes.AuthRoutes(v1, s.db)
 	routes.HabitRoutes(v1, s.db)
+	routes.UserRoutes(v1, s.db)
+	routes.PlayerRoutes(v1, s.db)
 
 	return r
 }
