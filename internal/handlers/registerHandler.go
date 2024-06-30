@@ -32,7 +32,7 @@ func Register(ctx *gin.Context, s database.Service) error {
 		return err
 	}
 
-	ctx.JSON(http.StatusCreated, user)
+	ctx.JSON(http.StatusCreated, gin.H{"message": "User created successfully"})
 
 	return nil
 }
