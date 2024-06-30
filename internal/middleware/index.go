@@ -2,7 +2,6 @@ package middleware
 
 import (
 	"life-gamifying/internal/utils"
-	"log"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -12,7 +11,6 @@ func AuthMiddleware() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		// Get the token from the header
 		token := ctx.GetHeader("Authorization")
-		log.Println(token)
 
 		// Check if token is empty
 		if token == "" {

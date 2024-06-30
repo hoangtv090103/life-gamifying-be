@@ -3,21 +3,16 @@ package server
 import (
 	"life-gamifying/internal/middleware"
 	"life-gamifying/internal/routes"
+	"life-gamifying/internal/utils"
 	"net/http"
 
-	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 )
 func (s *Server) RegisterRoutes() http.Handler {
     r := gin.Default()
 
     // Apply CORS middleware globally
-    r.Use(cors.New(cors.Config{
-        AllowOrigins:     []string{"http://localhost:5173"},
-        AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
-        AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization"},
-        AllowCredentials: true,
-    }))
+    r.Use(utils.CORS())
 
     // Define routes
     api := r.Group("/api")
