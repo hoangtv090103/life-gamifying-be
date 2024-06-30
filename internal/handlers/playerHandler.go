@@ -8,6 +8,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm/clause"
 )
 
 func GetPlayers(ctx *gin.Context, s database.Service) {
@@ -63,7 +64,7 @@ func GetPlayerByID(ctx *gin.Context, s database.Service) {
 	}
 
 	// If cache does not exist, get from database
-	db.Preload("Habits").First(&player, ctx.Param("id"))
+	db.Preload(clause.Associations).First(&player, ctx.Param("id"))
 
 	// Set player in cache
 	playerJSON, _ := json.Marshal(player)

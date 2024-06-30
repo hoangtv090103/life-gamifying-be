@@ -13,13 +13,12 @@ func Login(ctx *gin.Context, s database.Service) error {
 	var loginUser models.User
 	err := ctx.ShouldBindJSON(&loginUser)
 
-	
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return err
 	}
 
-	// Check if username or email is empty	
+	// Check if username or email is empty
 	var login string
 
 	if loginUser.Username != "" {
@@ -31,7 +30,7 @@ func Login(ctx *gin.Context, s database.Service) error {
 	password := loginUser.Password
 
 	// Check if username or email is empty
-	if login == "" || password == ""{
+	if login == "" || password == "" {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Username/Email and password is required"})
 		return err
 	}
@@ -54,7 +53,10 @@ func Login(ctx *gin.Context, s database.Service) error {
 		return err
 	}
 
-	ctx.JSON(http.StatusOK, gin.H{"token": token, "message": "Successfully logged in"})
+	var player models.Player
+	db.Where("user_id = ?", user.ID).First(&player)
+
+	ctx.JSON(http.StatusOK, gin.H{"token": token, "player_id": player.ID, "message": "Successfully logged in"})
 
 	return nil
 }

@@ -34,5 +34,18 @@ func Register(ctx *gin.Context, s database.Service) error {
 
 	ctx.JSON(http.StatusCreated, gin.H{"message": "User created successfully"})
 
+	// Create a player for the user
+	player := models.Player{
+		UserID: user.ID,
+		User:   user,
+	}
+
+	err = s.DB().Create(&player).Error
+
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return err
+	}
+
 	return nil
 }
