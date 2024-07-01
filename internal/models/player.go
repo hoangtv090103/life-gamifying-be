@@ -5,7 +5,7 @@ import "gorm.io/gorm"
 type Player struct {
 	gorm.Model
 	ID     uint `json:"id" gorm:"primaryKey"`
-	UserID uint `json:"user_id" gorm:"unique;not null"`
+	UserID uint `json:"-" gorm:"unique;not null"`
 	User   User `json:"user" gorm:"foreignKey:UserID"`
 	Level  uint `json:"level" gorm:"default:1"`
 	// RankID       uint    `json:"rank_id"`

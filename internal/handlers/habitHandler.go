@@ -34,7 +34,13 @@ func GetAllHabits(ctx *gin.Context, s database.Service) {
 	}
 
 	// If cache does not exist, get from database
-	db.Model(&models.Habit{}).Preload("PLayers").Find(&habits)
+	db.Model(&models.Habit{}).Find(&habits)
+
+	if len(habits) == 0 {
+		// No content
+		ctx.JSON(http.StatusNoContent, habits)
+		return
+	}
 
 	// Set habit list in cache
 	habitsJSON, _ := json.Marshal(habits)
@@ -106,6 +112,12 @@ func UpdateHabit(ctx *gin.Context, s database.Service) {
 
 	habitsJSON, _ := json.Marshal(habit)
 	client.Set(ctx, "habit:"+ctx.Param("id"), habitsJSON, 0)
+
+	// Update habit:all
+	var habits []models.Habit
+	db.Model(&models.Habit{}).Find(&habits)
+	habitsJSON, _ = json.Marshal(habits)
+	client.Set(ctx, "habits:all", habitsJSON, 0)
 
 	ctx.JSON(http.StatusOK, habit)
 }

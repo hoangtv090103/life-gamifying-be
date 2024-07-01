@@ -66,6 +66,11 @@ func New() Service {
 		log.Fatalf(fmt.Sprintf("database down: %v", err))
 	}
 
+	// Auto create record for level thresholds
+	// This is a one-time operation to create the level thresholds record in the database.
+	// The level thresholds are used to calculate the experience points required to reach the next level.
+	// The level thresholds are stored in the database and are used to calculate the experience points required to reach the next level.
+
 	err = pgdb.AutoMigrate(
 		&models.User{},
 		&models.Admin{},
@@ -76,13 +81,39 @@ func New() Service {
 		&models.Item{},
 		&models.Player{},
 		&models.Quest{},
-		&models.Rank{},
+		// &models.Rank{},
 		&models.Reward{},
 		&models.RewardItem{},
+		&models.LevelThresholds{},
 	)
+
 	if err != nil {
 		log.Fatalf("failed to auto migrate: %v", err)
 	}
+
+	// TODO: Find formula for exp to next level
+	// Check if the level thresholds record exists in the database.
+	// var levelThresholds models.LevelThresholds
+	// err = pgdb.First(&levelThresholds).Error
+
+	// // If the level thresholds record does not exist, create it.
+	// if err != nil {
+	// 	baseExp := 25.0
+	// 	// Create the level thresholds record with default values.
+	// 	for i := 1; i <= 100; i++ {
+	// 		levelThresholds.Level = uint(i)
+	// 		if i > 1 {
+	// 			levelThresholds.ExpToNext = uint(baseExp * math.Log2(float64(i)))
+	// 		} else {
+	// 			levelThresholds.ExpToNext = 0
+	// 		}
+	// 		err = pgdb.Create(&levelThresholds).Error
+	// 		if err != nil {
+	// 			log.Fatalf("failed to create level thresholds record: %v", err)
+	// 		}
+	// 	}
+	// }
+
 	// Add the Redis and PostgreSQL clients to the service struct
 	s := &service{rdb: rdb, pgdb: pgdb}
 

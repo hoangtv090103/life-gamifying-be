@@ -4,6 +4,7 @@ import (
 	"life-gamifying/internal/database"
 	"life-gamifying/internal/models"
 	"life-gamifying/internal/utils"
+	"log"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -21,17 +22,23 @@ func Login(ctx *gin.Context, s database.Service) error {
 	// Check if username or email is empty
 	var login string
 
+	log.Println(loginUser.Username)
+	log.Println(loginUser.Email)
+
 	if loginUser.Username != "" {
 		login = loginUser.Username
-	} else {
+	} else if loginUser.Email != "" {
 		login = loginUser.Email
+	} else {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Username/Email is required"})
+		return err
 	}
 
 	password := loginUser.Password
 
 	// Check if username or email is empty
-	if login == "" || password == "" {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Username/Email and password is required"})
+	if password == "" {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Password is required"})
 		return err
 	}
 
