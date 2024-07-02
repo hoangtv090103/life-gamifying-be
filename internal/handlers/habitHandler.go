@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"life-gamifying/internal/database"
 	"life-gamifying/internal/models"
+	"life-gamifying/internal/utils"
 	"log"
 	"net/http"
 	"strconv"
@@ -86,9 +87,13 @@ func CreateHabit(ctx *gin.Context, s database.Service) {
 	db := s.DB()
 
 	if err := ctx.ShouldBindJSON(&habit); err != nil {
+		log.Println(habit)
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+
+	// Convert difficulty string to enum type
+	habit.Difficulty = utils.Difficulty(habit.Difficulty)
 
 	db.Create(&habit)
 
@@ -96,6 +101,9 @@ func CreateHabit(ctx *gin.Context, s database.Service) {
 	client.Set(ctx, "habit:"+strconv.Itoa(int(habit.ID)), habitsJSON, 0)
 
 	ctx.JSON(http.StatusCreated, habit)
+
+	// Update habits:all
+	LoadHabitAll(ctx, s)
 }
 
 func UpdateHabit(ctx *gin.Context, s database.Service) {
@@ -113,11 +121,8 @@ func UpdateHabit(ctx *gin.Context, s database.Service) {
 	habitsJSON, _ := json.Marshal(habit)
 	client.Set(ctx, "habit:"+ctx.Param("id"), habitsJSON, 0)
 
-	// Update habit:all
-	var habits []models.Habit
-	db.Model(&models.Habit{}).Find(&habits)
-	habitsJSON, _ = json.Marshal(habits)
-	client.Set(ctx, "habits:all", habitsJSON, 0)
+	// Update habits:all
+	LoadHabitAll(ctx, s)
 
 	ctx.JSON(http.StatusOK, habit)
 }
@@ -128,9 +133,23 @@ func DeleteHabit(ctx *gin.Context, s database.Service) {
 	db := s.DB()
 
 	db.First(&habit, ctx.Param("id"))
-	db.Delete(&habit)
+	db.Delete(&habit, ctx.Param("id"))
 
 	client.Del(ctx, "habit:"+ctx.Param("id"))
 
 	ctx.JSON(http.StatusOK, gin.H{"id" + ctx.Param("id"): "deleted"})
+
+	// Update habits:all
+	LoadHabitAll(ctx, s)
+}
+
+func LoadHabitAll(ctx *gin.Context, s database.Service) {
+	var habits []models.Habit
+	client := s.RDB()
+	db := s.DB()
+
+	db.Model(&models.Habit{}).Find(&habits)
+
+	habitsJSON, _ := json.Marshal(habits)
+	client.Set(ctx, "habits:all", habitsJSON, 0)
 }

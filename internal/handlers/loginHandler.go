@@ -4,7 +4,6 @@ import (
 	"life-gamifying/internal/database"
 	"life-gamifying/internal/models"
 	"life-gamifying/internal/utils"
-	"log"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -21,9 +20,6 @@ func Login(ctx *gin.Context, s database.Service) error {
 
 	// Check if username or email is empty
 	var login string
-
-	log.Println(loginUser.Username)
-	log.Println(loginUser.Email)
 
 	if loginUser.Username != "" {
 		login = loginUser.Username

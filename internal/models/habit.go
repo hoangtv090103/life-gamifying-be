@@ -16,5 +16,5 @@ type Habit struct {
 	Success     uint             `json:"success"`
 	Failure     uint             `json:"failure"`
 	PlayerID    uint             `json:"player_id"`
-	Player      Player           `json:"player" gorm:"foreignKey:PlayerID"`
+	Player      Player           `json:"-" gorm:"foreignKey:PlayerID"`
 }
