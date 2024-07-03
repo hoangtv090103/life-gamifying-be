@@ -73,6 +73,7 @@ func New() Service {
 
 	err = pgdb.AutoMigrate(
 		&models.User{},
+		&models.Token{},
 		&models.Admin{},
 		&models.Daily{},
 		&models.Habit{},

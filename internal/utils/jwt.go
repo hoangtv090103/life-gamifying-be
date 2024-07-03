@@ -42,8 +42,9 @@ func ValidateToken(tokenString string) (*jwt.Token, error) {
 		if _, OK := token.Method.(*jwt.SigningMethodHMAC); !OK {
 			return nil, errors.New("bad signed method received")
 		}
-		return []byte(JwtKey), nil	})	
-	
+		return []byte(JwtKey), nil
+	})
+
 	if err != nil {
 		return nil, err
 	}

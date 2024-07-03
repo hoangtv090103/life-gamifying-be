@@ -21,7 +21,7 @@ func (s *Server) RegisterRoutes() http.Handler {
     routes.AuthRoutes(api, s.db)
 
     v1 := api.Group("/v1")
-    v1.Use(middleware.AuthMiddleware())
+    v1.Use(middleware.AuthenticateRequest(s.db))
     routes.HabitRoutes(v1, s.db)
     routes.UserRoutes(v1, s.db)
     routes.PlayerRoutes(v1, s.db)

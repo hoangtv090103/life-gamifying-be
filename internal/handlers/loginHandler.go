@@ -56,6 +56,9 @@ func Login(ctx *gin.Context, s database.Service) error {
 		return err
 	}
 
+	// Save token to database
+	err = SaveToken(s, token, user.ID)
+
 	var player models.Player
 	db.Where("user_id = ?", user.ID).First(&player)
 

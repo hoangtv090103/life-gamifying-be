@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"life-gamifying/internal/database"
 	"life-gamifying/internal/models"
-	"life-gamifying/internal/utils"
 	"log"
 	"net/http"
 	"strconv"
@@ -92,9 +91,6 @@ func CreateHabit(ctx *gin.Context, s database.Service) {
 		return
 	}
 
-	// Convert difficulty string to enum type
-	habit.Difficulty = utils.Difficulty(habit.Difficulty)
-
 	db.Create(&habit)
 
 	habitsJSON, _ := json.Marshal(habit)
@@ -107,6 +103,7 @@ func CreateHabit(ctx *gin.Context, s database.Service) {
 }
 
 func UpdateHabit(ctx *gin.Context, s database.Service) {
+	// TODO: Update habit in cache
 	var habit models.Habit
 	client := s.RDB()
 	db := s.DB()
