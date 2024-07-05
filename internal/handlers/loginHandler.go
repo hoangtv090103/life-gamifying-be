@@ -59,6 +59,18 @@ func Login(ctx *gin.Context, s database.Service) error {
 	// Save token to database
 	err = SaveToken(s, token, user.ID)
 
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return err
+	}
+
+	// Cache token
+	err = s.RDB().Set(ctx, token, user.ID, 0).Err()
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return err
+	}
+
 	var player models.Player
 	db.Where("user_id = ?", user.ID).First(&player)
 

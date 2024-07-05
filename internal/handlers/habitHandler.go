@@ -12,9 +12,7 @@ import (
 )
 
 func GetAllHabits(ctx *gin.Context, s database.Service) {
-	var habits []models.Habit
 	client := s.RDB()
-	db := s.DB()
 
 	// Get habit list in cache
 	cachedHabits, err := client.Get(ctx, "habits:all").Result()
@@ -33,20 +31,8 @@ func GetAllHabits(ctx *gin.Context, s database.Service) {
 		return
 	}
 
-	// If cache does not exist, get from database
-	db.Model(&models.Habit{}).Find(&habits)
-
-	if len(habits) == 0 {
-		// No content
-		ctx.JSON(http.StatusNoContent, habits)
-		return
-	}
-
 	// Set habit list in cache
-	habitsJSON, _ := json.Marshal(habits)
-	client.Set(ctx, "habits:all", habitsJSON, 0)
-
-	ctx.JSON(http.StatusOK, habits)
+	LoadHabitAll(ctx, s)
 }
 
 func GetHabitByID(ctx *gin.Context, s database.Service) {
@@ -147,6 +133,13 @@ func LoadHabitAll(ctx *gin.Context, s database.Service) {
 
 	db.Model(&models.Habit{}).Find(&habits)
 
+	if len(habits) == 0 {
+		// No content
+		ctx.JSON(http.StatusNoContent, habits)
+		return
+	}
+
 	habitsJSON, _ := json.Marshal(habits)
+	client.Del(ctx, "habits:all")
 	client.Set(ctx, "habits:all", habitsJSON, 0)
 }

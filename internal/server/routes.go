@@ -1,6 +1,7 @@
 package server
 
 import (
+	"life-gamifying/internal/handlers"
 	"life-gamifying/internal/middleware"
 	"life-gamifying/internal/routes"
 	"life-gamifying/internal/utils"
@@ -25,6 +26,9 @@ func (s *Server) RegisterRoutes() http.Handler {
     routes.HabitRoutes(v1, s.db)
     routes.UserRoutes(v1, s.db)
     routes.PlayerRoutes(v1, s.db)
+    api.DELETE("auth/logout", middleware.AuthenticateRequest(s.db), func(c *gin.Context) {
+        handlers.LogoutHandler(c, s.db)
+    })
 
     r.GET("/", s.HelloWorldHandler)
 
