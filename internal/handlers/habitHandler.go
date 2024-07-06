@@ -78,14 +78,15 @@ func CreateHabit(ctx *gin.Context, s database.Service) {
 	}
 
 	db.Create(&habit)
+	// Update habits:all
+	LoadHabitAll(ctx, s)
 
 	habitsJSON, _ := json.Marshal(habit)
 	client.Set(ctx, "habit:"+strconv.Itoa(int(habit.ID)), habitsJSON, 0)
+	
+
 
 	ctx.JSON(http.StatusCreated, habit)
-
-	// Update habits:all
-	LoadHabitAll(ctx, s)
 }
 
 func UpdateHabit(ctx *gin.Context, s database.Service) {
@@ -105,6 +106,7 @@ func UpdateHabit(ctx *gin.Context, s database.Service) {
 	client.Set(ctx, "habit:"+ctx.Param("id"), habitsJSON, 0)
 
 	// Update habits:all
+	log.Println("Update player:" + ctx.Param("id") + ":habits")
 	LoadHabitAll(ctx, s)
 
 	ctx.JSON(http.StatusOK, habit)
@@ -131,6 +133,9 @@ func LoadHabitAll(ctx *gin.Context, s database.Service) {
 	client := s.RDB()
 	db := s.DB()
 
+	player_id := ctx.GetHeader("player_id")
+	log.Println(player_id)
+
 	db.Model(&models.Habit{}).Find(&habits)
 
 	if len(habits) == 0 {
@@ -139,7 +144,12 @@ func LoadHabitAll(ctx *gin.Context, s database.Service) {
 		return
 	}
 
-	habitsJSON, _ := json.Marshal(habits)
-	client.Del(ctx, "habits:all")
-	client.Set(ctx, "habits:all", habitsJSON, 0)
+	habitsJSON, err := json.Marshal(habits)
+
+	if err != nil {
+		log.Println(err)
+	}
+
+	log.Println(ctx.Param("id"))	
+	client.Set(ctx, "player:" + player_id + ":habits", habitsJSON, 0)
 }
